@@ -44,12 +44,20 @@ procinit() {
 
 procend() {
 	echo "procend:$procitems:$?"
+	if ${ONCE:-false}; then
+		for procind in $(seq 0 $(($procitems - 1))); do
+			echo "$(procdelim)$(procresult)" >&5
+		done
+	fi
 }
 
 procitem() {
 	echo "procitem:$procind of $procitems"
-	echo "$(procdelim)$(procresult)" >&5
-  [[ -n "${DIE}" && $procind -eq "${DIE}" ]] && exit 1
+	if ! ${ONCE:-false}; then
+		echo "$(procdelim)$(procresult)" >&5
+	fi
+  [[ -n "${DIE}" && $procind -eq "${DIE}" ]] && exit $((${DIE} + 1))
+	return 0
 }
 
 jqlib() {
