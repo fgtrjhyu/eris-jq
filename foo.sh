@@ -57,11 +57,12 @@ jqlib() {
 	def join(delim):
 		reduce .[] as $e (""; if . == "" then $e else . + delim + $e end)
 	;
-  def mkproc:
-		{ "com": "procind=\(.key) procitem", "fd": .value.fd }
+  def mkproc(len):
+		{ "com": "procitems=\(len) procind=\(.key) procitem", "fd": .value.fd }
   ;
 	def nesting(a):
-		to_entries | map(mkproc) | reduce .[] as $e (a; "((\($e.com) 1>&3) 5>&1) | ((\(.)) \($e.fd)<&0)")
+		length as $len |
+		to_entries | map(mkproc($len)) | reduce .[] as $e (a; "((\($e.com) 1>&3) 5>&1) | ((\(.)) \($e.fd)<&0)")
 	;
 	def multicat:
 		map("$(cat 0<&\(.fd))") | join("") | "echo \"[\(.)]\">&5"
@@ -70,7 +71,7 @@ jqlib() {
 		to_entries | map({"fd": (.key + 6), "origin": .value}) as $list | $list | nesting($list | multicat)
 	;
 	def sequence:
-		(. | length) as $len |
+		length as $len |
 		[range(0;$len)] | map(@text) | join(" ") |
 		"(((procitems=\($len); procinit; (for procind in \(.);do procitem; done); procend) 1>&3) 5>&1) | echo \"[$(cat)]\">&5"
 	;
@@ -203,5 +204,4 @@ orig() {
 	EOF
 }
 
-exec 3>&1
-json | config | runcom
+((json | config | runcom) 3>&1)
